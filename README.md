@@ -5,6 +5,11 @@ Experimental comparisons demonstrate that our algorithm outperforms MM in terms 
 
 <img width="1101" alt="meet_IJCAI" src="https://github.com/user-attachments/assets/cc294713-2961-4875-92e4-9261759e23a9" />
 
+<img width="1115" alt="State Expansion" src="https://github.com/user-attachments/assets/20494aec-1627-4d01-b6d3-51151a023993" />
+
+<img width="1198" alt="Reduction" src="https://github.com/user-attachments/assets/bfabaedf-07a4-43c0-8e88-98cac42973a7" />
+
+
 [MEET_appendix_.pdf](https://github.com/user-attachments/files/20354553/MEET_appendix_.pdf)
 
 
