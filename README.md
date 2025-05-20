@@ -5,5 +5,5 @@ Experimental comparisons demonstrate that our algorithm outperforms MM in terms 
 
 <img width="1101" alt="meet_IJCAI" src="https://github.com/user-attachments/assets/cc294713-2961-4875-92e4-9261759e23a9" />
 
-🚀 **[MEET has been accepted to the 34th International Joint Conference on Artificial Intelligence (IJCAI 2025)](https://2025.ijcai.org)!** The code will be released after the conference.
+🚀 **[MEET has been accepted to the 34th International Joint Conference on Artificial Intelligence (IJCAI 2025)](https://2025.ijcai.org)!** The C++ code will be released after the conference.
 
