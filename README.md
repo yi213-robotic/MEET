@@ -10,7 +10,7 @@ Experimental comparisons demonstrate that our algorithm outperforms MM in terms 
 <img width="1198" alt="Reduction" src="https://github.com/user-attachments/assets/bfabaedf-07a4-43c0-8e88-98cac42973a7" />
 
 
-[MEET_appendix_.pdf](https://github.com/user-attachments/files/20354553/MEET_appendix_.pdf)
+> ℹ️ See the pseudocode of MEET [MEET_appendix_.pdf](https://github.com/user-attachments/files/20354553/MEET_appendix_.pdf)
 
 
 🚀 **[MEET has been accepted to the 34th International Joint Conference on Artificial Intelligence (IJCAI 2025)](https://2025.ijcai.org)!** The C++ code will be released after the conference.
