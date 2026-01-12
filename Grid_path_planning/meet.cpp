@@ -5,7 +5,7 @@ meet::meet(){
     C_curr = infinity = numeric_limits<double>:: infinity();
     fCounter_ = bCounter_ = 0;
     firstS_ = find_solution = findASolution_  = false;
-    bSolu_ = TC1_ = TC2_ = TC3_ = TC4_ = TC5_ = TC6_ = false;
+    TC1_ = TC2_ = TC3_ = TC4_ = TC5_ = TC6_ = false;
     
 }
 /***** Deconstructbeas */
@@ -34,50 +34,18 @@ double meet::OctileDistance(int dx, int dy)
 }
 
 /********** parsing a map and get the corner verrtices ************/
-void meet::parsing_map() {//
-    int xs=0,ys=0, dynamicNum =0;
-    char chr= '\0';
-    int src = 0, t = 0;
-    cin >> xs>>ys;
-    map_x = xs;map_y = ys;
-    int p= (xs<<16)|ys;
-    grid_.resize(p);
-    p = ((xs+2)<<16)|(ys+2);
+meet::meet(vector<bool > grid_, int width, int height, int sx, int sy, int gx, int gy) {//
+    epsilon = 1e-9;//numeric_limits<double>:: epsilon()
+    fmin_ = C_curr = infinity = numeric_limits<double>:: infinity();
+    OSME_ = fCounter_ = bCounter_ = 0;
+    firstS_ = find_solution = findASolution_ = false;
+    map_x = width;map_y = height;
+    int p = ((width+2)<<16)|(height+2);
     blocks_.resize(p);
-    for(int i = ys-1; i>=0;i--) { //row y
-        for(int j = 0; j<xs;j++) { // col x
-            cin >> chr;
-            p = j<<16 | i;
-            if(chr == '#'){
-                grid_[p] = true;//
-                //cerr << "(" << j << "," << i<< ")," << endl;
-            }
-            /*if(j >=120 && j <=155 && i >= 80 && i <= 125)
-            { 
-              if(j==149 && i == 87)
-                cerr << "s";
-              else if(j==126 && i == 121)
-                cerr << "G";
-              else      
-              cerr << chr;
-            }*/
-            
-            /*if(chr == 's' || chr == 'G')
-               cerr << j << " " << i << endl;*/
-              
-        }
-        //cerr << endl;
-    }
-    //exit(-1);
-    cin>>start_x>>start_y;
-    cin>>end_x>>end_y;
-    //cerr << "Path finding from ("<<start_x << "," << start_y << ") to  ("<<end_x << "," << end_y << ") on the map with the weith: " << map_x << ", and height: " << map_y << "." << endl;
-    /*vertex_.resize(map_x+2);
-    for(int x = 0; x<= map_x+1;x++) {
-       vertex_[x].resize(map_y+2);
-    }*/
-    vertex_.resize((map_x+2)<<16|(map_y+2));
-    
+    start_x = sx; start_y = sy;
+    end_x = gx;  end_y=gy;
+    cerr << "Path finding from ("<<start_x << "," << start_y << ") to  ("<<end_x << "," << end_y << ") on the map with the weith: " << map_x << ", and height: " << map_y << "." << endl;
+    vertex_.resize((map_x+2)<<16|(map_y+2));  
     for (int x = 0; x <= map_x+1; x++) {
         for (int y = 0; y <= map_y+1; y++){
              int VID = x<<16|y;
@@ -92,7 +60,6 @@ void meet::parsing_map() {//
             }
         }
     }
-    NGcost_ sval_(0,0,0,false,false,false,false);
     START = ID(start_x,start_y);
     GOAL = ID(end_x,end_y);
     Initialize_And_Insert_start(); 
@@ -131,7 +98,7 @@ bool meet::stateExpansion()
    fmin_ = std::min(fdir_.cf.f,bdir_.cb.f);
    
    /* evaluate whether need to terminate search**/
-   if((findASolution_ ) && (find_solution = (TerminationCondition(0, 0, false, true))))
+   if(findASolution_ && (find_solution = TerminationCondition(0, 0, false, true)))
    { return true; }
    
    /* select the minimum priority for expansion**/
@@ -169,22 +136,22 @@ bool meet::stateExpansion()
 
 void meet::forwardSearch()
 {
-      cerr << "expanding in forward direction: (" << fdir_.l.x << "," << fdir_.l.y<< " ), f: " << fdir_.cf.f << " g: " << fdir_.cf.g << " h: "<< fdir_.cf.h << " " << fCounter_ << " "  << fdir_.cb.pr << "  " <<  fdir_.mt << " new generation " << fdir_.cf.Spt_ << endl;
+      //cerr << "expanding in forward direction: (" << fdir_.l.x << "," << fdir_.l.y<< " ), f: " << fdir_.cf.f << " g: " << fdir_.cf.g << " h: "<< fdir_.cf.h << " " << fCounter_ << " "  << fdir_.cb.pr << "  " <<  fdir_.mt << endl;
       vertex_[fdir_.l.Id].vis = true;  
-      generatingSuccessor(fdir_, curG_ = fdir_.cf.g, curH_= fdir_.cf.h, fdir_.mt, cPi_ = fdir_.cf.pi_, fdir_.cb.pr, fdir_.cf.Spt_);
+      generatingSuccessor(fdir_, curG_ = fdir_.cf.g, curH_ =  fdir_.cf.h, fdir_.mt, cPi_ = fdir_.cf.pi_, fdir_.cb.pr, fdir_.cf.Spt_);
 }
 
 void meet::backwardSearch()
 {
 
-      cerr << "expanding in backward direction: (" << bdir_.l.x << "," << bdir_.l.y<< "), f: " << bdir_.cb.f << " g: " << bdir_.cb.g << " h: " << bdir_.cb.h  <<"  " << bCounter_ << " " << bdir_.cf.pr << " " << bdir_.mt << " new generation "  << bdir_.cb.Spt_ << endl;         
+      //cerr << "expanding in backward direction: (" << bdir_.l.x << "," << bdir_.l.y<< "), f: " << bdir_.cb.f << " g: " << bdir_.cb.g << " h: " << bdir_.cb.h  <<"  " << bCounter_ << " " << bdir_.cf.pr << " " << bdir_.mt << endl;         
       vertex_[bdir_.l.Id].vis = true;
-      generatingSuccessor(bdir_, curG_ = bdir_.cb.g, curH_ = bdir_.cb.h,bdir_.mt, cPi_ = bdir_.cb.pi_,bdir_.cf.pr, bdir_.cb.Spt_);
+      generatingSuccessor(bdir_, curG_ = bdir_.cb.g, curH_ =  bdir_.cb.h,bdir_.mt, cPi_ = bdir_.cb.pi_,bdir_.cf.pr, bdir_.cb.Spt_);
 }
 
 void meet::printStatement()
 {
-      if(findASolution_ )
+      //if(findASolution_ )
       {
            cerr << "********************* MEET finds a solution C_curr: " << C_curr << ", forward g:  " << fdir_.cf.g << " forward h: " << fdir_.cf.h << ", forward f: " <<  fdir_.cf.f << "; backward g: " <<  bdir_.cb.g << ", backward h: " << bdir_.cb.h; 
            cerr << ", backward f: "  << bdir_.cb.f << "; forward vertex [ "<< fdir_.l.x << " " << fdir_.l.y << "], backward vertex [ " << bdir_.l.x << " " << bdir_.l.y;
@@ -192,8 +159,8 @@ void meet::printStatement()
       }
 }
 
-/************Find an optimal anyangle path********************/
-void meet::meetSEARCH() {
+/************Find an optimal path********************/
+double meet::meetSEARCH(double &rt, int &forwardEx_, int &backwardEx_, int &OSME, int &chi_, int &T1, int &T2, int &T3, int &T4, int &T5, int &T6) {
     double startTime = clock();
     bool ProrityC = false;
     int ty = 0, tx = 0, tmx=999999 , tmy=999999;
@@ -210,10 +177,10 @@ void meet::meetSEARCH() {
                 OpenF.pop();
                 if(fdir_.vis)
                   continue;
-                forwardL.push_back(make_pair(fdir_.l.x,fdir_.l.y));
-                printStatement();
+                //forwardL.push_back(make_pair(fdir_.l.x,fdir_.l.y));
+                //printStatement();
                 fCounter_++;
-                /*if(fCounter_ == 6870)
+                /*if(fCounter_ == 552)
                  exit(-1);*/
                 forwardSearch();
           } 
@@ -223,11 +190,10 @@ void meet::meetSEARCH() {
                 OpenB.pop();
                 if(bdir_.vis)
                   continue;
-                backwardL.push_back(make_pair(bdir_.l.x,bdir_.l.y));
-                printStatement(); 
+                //backwardL.push_back(make_pair(bdir_.l.x,bdir_.l.y));
+                //printStatement(); 
                 bCounter_++;
-                /*if(bCounter_ == 8577)
-                 exit(-1);*/
+
                 backwardSearch();
           }
           if(find_solution)
@@ -237,33 +203,41 @@ void meet::meetSEARCH() {
     double rtime = (double) (endTime - startTime) / CLOCKS_PER_SEC;
     cerr << "meet takes: "<<rtime*1000 <<" (ms)";
     double pathLength = C_curr;
-    for(int i = 0 ; i < forwardL.size();i++)
-    { 
-        
-        cerr << "(" << forwardL[i].first<< "," << forwardL[i].second<< "),"  << endl;
-       
-        
-    }
-    
-    cerr << "******************************* " <<endl;
-    for(int i = 0 ; i < backwardL.size();i++)
-    {
-
-        cerr << "(" << backwardL[i].first<< "," << backwardL[i].second<< ")," << endl;
-        
-    }
+    rt = rtime;
+    forwardEx_ = fCounter_;
+    backwardEx_= bCounter_;
+    OSME = OSME_;
+        if(TC1_)
+        T1++;
+    else if(TC2_)
+        T2++;
+    else if(TC3_)
+        T3++;
+    else if(TC4_)
+        T4++;        
+    else if(TC5_)
+        T5++;
+    else
+        T6++; 
     if(pathLength != 0)
     {
        cerr << " to find the optimal path length: " << setprecision(15) <<pathLength << " and expanded forward vertices: " << fCounter_ << ", backward vertices: " << bCounter_ << endl;
        cerr << " TC occurs when "<<  TC1_ << "  " << TC2_<< " " <<  TC3_ << "  " <<  TC4_ << "  "<<  TC5_ << "  " <<  TC6_ << endl;
-       show_path();
+       //show_path();
     }
     else
     {
         cerr << " to find no path." << endl;
     }
+    return C_curr;
 }
 
+
+bool meet::lSolu(double sf_)
+{  return sf_ + epsilon < C_curr; }
+
+bool meet::leqSolu(double sf_)
+{ return sf_ < C_curr+ epsilon ;  }
 
 /*******************Constraining, Modifying Propagating range***********/
 void meet::generatingSuccessor(vertex cur_, double Gcur, double Hcur, bool Ibest_, bool pi_, bool opt, bool curSpt_) {//eight ibeasediate neighbors, where (0, 0) is the bottom left corner
@@ -271,7 +245,6 @@ void meet::generatingSuccessor(vertex cur_, double Gcur, double Hcur, bool Ibest
       int Ax = x+1,Ay = y+1,Dx = x-1,Dy = y-1;
       locS_ = hasChild_ = firstS_ = findMS_ = false;
       bool prdf_ = false, prdb_ = false;
-      bool of_ = false, ob_ = false;
       fExpd_ ? prdf_ = Gcur + epsilon < Hcur : prdb_ = Gcur + epsilon < Hcur;
       Spt_ = curSpt_;
       sGmin_ =  Sfmin_ = infinity;
@@ -305,44 +278,55 @@ void meet::generatingSuccessor(vertex cur_, double Gcur, double Hcur, bool Ibest
       }
       
       if(findMS_)
-      {       
-             if(pi_ && !firstS_ && (fExpd_ ?!pSolF_ : !pSolB_) && hElevation(Gcur, Hcur))
-             { find_solution = true;}
-             //else
-             //{ pSolF_= pSolB_ = true; }
+      {      
+             /** This part is only for grid-path planning domain since it is not uniform cost edge domain*/
+             
+             if(pi_ && !firstS_ && ((fExpd_ ?!pSolF_ : !pSolB_) ? hElevation(Gcur, Hcur) : (bIh_ && sval_.g > maxG_)))
+             { 
+               find_solution = true;
+               if(Ih_)
+               { TC3_ = true;}
+               else
+               {  TC4_ = true;}
+             }
+             else
+             { pSolF_= pSolB_ = true; }
+             
              findASolution_ = true;
              IbDir_ = fExpd_;
              prtI_ = pi_;
              bFs_ = firstS_ ;
-             bSolu_ = locSol_ = bSoluF_ =  bSoluB_ = false;//
+             bSolu_ = locSol_ = bSoluF_ =  bSoluB_ = false;//(firstS_ || hElevation(IMV_.g,ExIMV_.g,IMV_.h,ExIMV_.h))
              gI_ = Gcur + 1;
-             hI_ = sval_.h;
              bIh_ = gI_ + gI_ > C_curr;
+             maxG_ = IMV_.g;
              if(firstS_)
-             {  pSolF_ = pSolB_ = false;}
+             { 
+                pSolF_ = pSolB_ = false;
+                IgI_ = gI_; hI_ = sval_.h;
+             }
              prtIbG_ = Gcur ; prtIbH_ = Hcur;
              lSpt_ = acrt_ ? true: false;
              c_bt = fExpd_ ? f_min_ + epsilon> C_curr : b_min_ + epsilon > C_curr;
+             OSME_ = fCounter_ + bCounter_;
       }
       else
       {
-               //cerr << sval_.f << " " << sval_.g << endl;
 	        if(findASolution_ && !find_solution && sval_.val_) //&& llmin_ + epsilon < C_curr
 	        { 
-	            Sfmin_ = locS_ ? sGmin_ : sval_.f; 
-	            if(Spt_ && bSoluF_&&  bSoluB_ && lSpt_ && Sfmin_ + epsilon  > C_curr)
-	            {
-	                 lSpt_ = bSoluF_ =  bSoluB_ = false;
-	            }
-	            if(Spt_ && f_dMin + epsilon < C_curr &&  !lSpt_ && Sfmin_ + epsilon  < C_curr)
-                    { lSpt_ = true;   }
-                    
-                    bSolu_ =  hasBetterSolu();//((!bSoluF_ &&fExpd_) || (!bSoluB_ && !fExpd_))
-                    
-                    cerr << bSolu_ << "++++ " << bSoluF_ << " " << fExpd_ << " " << bSoluB_ << " " << !fExpd_ <<endl;
+	            //Sfmin_ = sval_.f;
+	            Sfmin_ = locS_ ? sGmin_ : sval_.f;  
+	            
+	            /** this is for resetting the evaluation of best solution */
+	            if(Spt_ && bSoluF_ &&  bSoluB_ && lSpt_ && Sfmin_ + epsilon  > C_curr)
+	            { lSpt_ = bSoluF_ =  bSoluB_ = false;}
+	            
+	            if(Spt_ && f_dMin + epsilon < C_curr &&  !lSpt_ && (Sfmin_ + epsilon  < C_curr))
+                    { lSpt_ = true; } /**this is for the TC5 or TC6*/
+                                        
+                    bSolu_ =  hasBetterSolu();
                     find_solution = TerminationCondition(Gcur,Hcur,pi_,false);
                     preDf_ = prdf_, preDb_ = prdb_;
-                    psl_ = Spt_;
 		}
 		fExpd_ ? f_min_ = Sfmin_: b_min_ = Sfmin_; 
       }
@@ -353,11 +337,10 @@ bool meet::hasBetterSolu()
      if(Ih_ && (fExpd_ ? !bSoluF_ : !bSoluB_))
      {
         if(sval_.f + epsilon > C_curr)
-        return true;
+        {   return true;}
         else if (bSoluF_ || bSoluB_)
-        return false;
+        {   return false;}
      }
-     cerr << "????? " << " " << bSolu_ << " "<< bSoluF_ << " " << fExpd_ << " " << bSoluB_ << " " << !fExpd_ << endl;
      return ((!bSoluF_ &&fExpd_) || (!bSoluB_ && !fExpd_)); 
 }
 
@@ -369,7 +352,6 @@ void meet::minValueOps(double sf_, bool spi_)
 
 bool meet::TC1()
 {  
-   //cerr << "testing here " << bpi_ << " " << f_dMin <<endl;
    return TC1_= (fmin_ + epsilon > C_curr || (!bpi_ && (f_dMin + epsilon > C_curr)));     
 }
 
@@ -379,14 +361,14 @@ bool meet::TC2(bool fpi_, bool bpi_, bool fmt_, bool  bmt_, double fg, double bg
 }
 
 bool meet::TC3(double gCur_, double hCur_)
-{   
-    cerr << bSolu_ << " " << !bSoluF_ << "  " << fExpd_ << " " << !bSoluB_ << " " << !fExpd_  << " --- " << cPi_ << " "  << prtI_ << endl; //(gCur_ > prtIbG_ + epsilon && hCur_ + epsilon > prtIbH_) || (fExpd_!= IbDir_ && sval_.f > C_curr+ epsilon)gCur_ > prtIbG_ + epsilon && hCur_ + epsilon > prtIbH_
-    return TC3_= (Ih_ && !Spt_ &&bSolu_ && (cPi_? prtI_ && ((hEq(gCur_,hCur_)) || (fExpd_!= IbDir_ && Sfmin_ > C_curr+ epsilon)) : (!locSol_ ? (!sval_.pi_ && !lSolu(Sfmin_)) ||  hEq(gCur_, hCur_) : Dhill_ && hElevation(gCur_, hCur_))));
+{
+     /** This is for TC3, where the g -cost of a meeting state from its generating side is higher than from the other side, and nothing ahead cannot exceed it */
+     
+     return TC3_= (Ih_ && !Spt_ &&bSolu_ && (cPi_? prtI_ && ((hEq(gCur_,hCur_)) || (fExpd_!= IbDir_ && Sfmin_ > C_curr+ epsilon)) : (!locSol_ ? (!sval_.pi_ && !lSolu(Sfmin_)) ||  hEq(gCur_, hCur_) : Dhill_ && hElevation(gCur_, hCur_))));
 }
 bool meet::TC4(double gCur_, double hCur_, bool pi_)
 {
-     //return false;
-     cerr << !bSolu_ << " TC4 " << sval_.pi_ << "  " << !bSoluF_ << " " << !bSoluB_  << endl;
+     /** This is for TC4, where the g -cost of a meeting state from its generating side is lower, but no further state could improve the incumbent solution*/
      bool sDirSol_ = !Ih_ && bSolu_;
      bool sDir_ = false;
      //return false;
@@ -395,11 +377,11 @@ bool meet::TC4(double gCur_, double hCur_, bool pi_)
      
      if(!sDir_)
      {
-        return (TC4_ = (hElevation(gCur_,hCur_) || ( (bSolu_) && (!sval_.pi_ || pi_) && Sfmin_ + epsilon > C_curr)));
+        return (TC4_ = (hElevation(gCur_,hCur_) || (bSolu_ && (!sval_.pi_ || pi_) && Sfmin_ + epsilon > C_curr)));
      }
      else if(!pi_)
      {
-        //cerr << gCur_ << "  " <<Hcur_ << "  " <<fExpd_ << "  " << preDb_ << "  " << preDf_ << endl;  
+        
         if(!Eq(gCur_, hCur_) || hCur_ >= lnh_)
         return (TC4_ = (gCur_ == hCur_ ? (fExpd_ ? preDb_ : preDf_): true) && ((!sval_.pi_ && Sfmin_ >= C_curr) || hElevation(gCur_,hCur_)));//
      }
@@ -408,18 +390,16 @@ bool meet::TC4(double gCur_, double hCur_, bool pi_)
         return (TC4_ = hEq( gCur_, hCur_) || Sfmin_ >= C_curr);
      }
      return TC4_ =false;
-     //return TC4_ = (!Ih_ && (!betterSoluF_ || !betterSoluB_) && (((!sval_.pi_ || pi_) && Sfmin_ + epsilon> C_curr) || ((!sval_.pi_ || (fExpd_!= IbDir_)) && hElevation(gCur_,hCur_))));
 }
 bool meet::TC5(double Gcur, double Hcur)
 {
-     //return false;
      bool El = (fExpd_== IbDir_) && Eq(Gcur,Hcur);    
-     return TC5_ = bSolu_ && ((!Ih_ && !El  && !prtI_ && c_bt )  || (fExpd_!= IbDir_) || (!sval_.pi_ && !El  && !prtI_ && c_bt)) && IMV_.g + IMV_.h + epsilon < C_curr && (sval_.g+sval_.h  > C_curr+ epsilon);;
+     return TC5_ = bSolu_ && ((!Ih_ && !El  && !prtI_ && c_bt )  || (fExpd_!= IbDir_) || (!sval_.pi_ && !El  && !prtI_ && c_bt)) && IMV_.g + IMV_.h + epsilon < C_curr && (sval_.g+sval_.h  > C_curr+ epsilon);
 }
 
 bool meet::TC6()
 {
-    return TC6_= (Spt_ && !lSpt_ && (!Ih_ || bFs_ ) && !sval_.pi_ && Sfmin_ + epsilon> C_curr);
+    return TC6_= (Spt_ && !lSpt_ && (!Ih_ || bFs_ )  && !sval_.pi_ && Sfmin_ + epsilon> C_curr);
 }
 
 bool meet::hElevation(double gCur, double hCur)
@@ -435,7 +415,7 @@ bool meet::TerminationCondition(double Gcur, double Hcur, bool pi_, bool PreExpa
 { 
          if(PreExpansion)
          {
-                 if(TC1() )|| TC2(fdir_.cf.pi_,bdir_.cb.pi_,fdir_.mt, bdir_.mt,fdir_.cf.g,bdir_.cb.g)
+                 if(TC1() || TC2(fdir_.cf.pi_,bdir_.cb.pi_,fdir_.mt, bdir_.mt,fdir_.cf.g,bdir_.cb.g))
                  {
                    return true;
                  }
@@ -454,7 +434,6 @@ bool meet::TerminationCondition(double Gcur, double Hcur, bool pi_, bool PreExpa
 
 bool meet::refineState(double sf_, double sg_, double sh_, bool vPI_)
 {
-
         if(Ih_)// generating side has larger g-value
         {
                if(vPI_) // if the successor is the privot state
@@ -468,6 +447,7 @@ bool meet::refineState(double sf_, double sg_, double sh_, bool vPI_)
         }
         return (sg_ + epsilon < IMV_.g || IMV_.g + IMV_.h + epsilon > C_curr) && lSolu(sf_);
 }
+
 void meet::updateMetricValues(int lx, int ly, bool diagNeighbor, Cost &vc_, double cg, double ch ,int &curId_, int sId_ , int ox, int oy, bool oprD_, double bg_, bool &sDm_, bool &sms_, double bf, bool curDm, bool &child_, bool vis_)
 {
        bool pIs_ = false, cPI_ = true; //deadend_ = true;
@@ -479,39 +459,27 @@ void meet::updateMetricValues(int lx, int ly, bool diagNeighbor, Cost &vc_, doub
                  vc_.Spt_ = child_;
                  
                  if((child_ && !diagNeighbor))
-                 { sGmin_ = min(vc_.f,sGmin_);locS_ = true;}
+                 { sGmin_ = min(vc_.f,sGmin_);locS_ = true;}//cPi_ && prtI_
                  
-                 if((!pSolF_ || !pSolB_) && vc_.pi_ && (vc_.g + epsilon < gI_ || curH_ + epsilon < prtIbH_ || vc_.h + epsilon < hI_))
+                 if((!pSolF_ || !pSolB_) && vc_.pi_ && (vc_.g + epsilon < IgI_ || curH_ + epsilon < prtIbH_ || vc_.h + epsilon < hI_))
                  {  fExpd_ ? pSolF_ = true : pSolB_ = true;  }
                  
                  if(Ih_ && !cPi_&& locHep_)
                  { locSol_ = !locSol_ ? (vc_.g + vc_.h < C_curr): locSol_;}
-                 cerr << vc_.g << " " << gI_ << " " << vc_.h << " " << hI_ << endl;
-                 bool iSol_ = false;
-                 //(Ih_ ? (vc_.pi_? ((bIh_ && bFs_) ? les(vc_.g,gI_) :leq(vc_.g,gI_)) : (bIh_ ? leqSolu(vc_.f): (iSol_ = lSolu(vc_.f))))  : vc_.g + epsilon < IMV_.g && lSolu(vc_.f))
-                 if((!bSoluF_ || !bSoluB_) && refineState(vc_.f,vc_.g,vc_.h,vc_.pi_))  
-                 {  /*find a refine state**/
-                     fExpd_ ? bSoluF_ = true : bSoluB_ = true; 
-                 }
+                 
+                 if((!bSoluF_ || !bSoluB_)  && refineState(vc_.f,vc_.g,vc_.h,vc_.pi_))  
+                 {  fExpd_ ? bSoluF_ = true : bSoluB_ = true; /*find a refine state**/}
              }
              getMinMetricValue_((findMS_ ? curCost_ : vc_.f),vc_.g,vc_.h,vc_.pi_, false, cg, ch,Sfmin_,sval_,sms_,pIs_,sId_,!diagNeighbor);   
        }
 }
 
-bool meet::lSolu(double sf_)
-{  return sf_ + epsilon < C_curr; }
-
-bool meet::leqSolu(double sf_)
-{ return sf_ < C_curr+ epsilon ;  }
-
-
 void meet::getMinMetricValue_(double sf_, double sg_, double sh_, bool digm_, bool Ms_ , double Gcur, double Hcur, double &lminF_, NGcost_ &val_, bool smt_, bool pI_, int ID_, bool uiCost)
 {
-          cerr << sf_ << " " << lminF_ << endl;
           if(sf_ + epsilon < lminF_ )
           {
              lminF_ = sf_;
-             val_ = NGcost_(sf_,sg_,sh_,digm_,smt_,pI_, uiCost); 
+             val_ = NGcost_(sf_,sg_,sh_,digm_,smt_,pI_,uiCost); 
           }
 }
 
@@ -520,8 +488,8 @@ void meet::valueUpdating(int x, int y, bool diagNeighbor, Cost &suc_, double cur
 {    
         if(!suc_.pr)
         {
-            suc_.h = EuclideanDistance(x-tx,y-ty);
-            //suc_.h = OctileDistance(x-tx,y-ty);
+            //suc_.h = EuclideanDistance(x-tx,y-ty);
+            suc_.h = OctileDistance(x-tx,y-ty);
             suc_.g = infinity;
         }
         double edge_Cost =1;
@@ -545,7 +513,7 @@ void meet::valueUpdating(int x, int y, bool diagNeighbor, Cost &suc_, double cur
               {
                   leastC = suc_.g + rg; 
                   bool Ibest_= false;
-                  cerr << " the reverse tree's g-value is " << rg << " " << firstS_ << endl;
+                  //cerr << " the reverse tree's g-value is " << rg << " " << firstS_ << endl;
                   if(leastC + epsilon < C_curr || (Ibest_ = ( !(leastC > epsilon + C_curr) && (!firstS_ && min(suc_.g,rg) + epsilon < IGMin_))))
                   {
                            curCost_ = (!pi_ ? suc_.f: (suc_.g+suc_.g)); 
@@ -559,10 +527,14 @@ void meet::valueUpdating(int x, int y, bool diagNeighbor, Cost &suc_, double cur
 		            C_curr = leastC;
 		            IGMin_ = min(suc_.g,rg);
 		            acrt_ = (suc_.h + epsilon> rg && !cPi_); 
+		            OSME_ = fCounter_ + bCounter_;
 		            if(!Ibest_)
-		            { firstS_ = true; cerr << "\t here we found a new path **********************************************************!"<<endl;}
+		            { firstS_ = true; //cerr << "\t here we found a new path **********************************************************!"<<endl;
+		            }
 		            else
-		            { cerr << "\t we found a better meeting state *****************************************************!"<< endl;   }
+		            { //cerr << "\t we found a better meeting state *****************************************************!"<< endl;  
+		            }
+		            
                   }
                   else
                   {   
@@ -571,10 +543,10 @@ void meet::valueUpdating(int x, int y, bool diagNeighbor, Cost &suc_, double cur
                   }
               }
               
-              if(!culling_)
+              /*if(!culling_)
               { cerr << " \t\t ("<< x<< "," << y << ")," <<" g:" << suc_.g << ", h: " << suc_.h << ", f: " << suc_.f << ", origin (" << tx << "," << ty << "), is on reverse tree " << endl; }
               else
-              { cerr << " \t\t Pruning: ("<< x<< "," << y << ") : " <<" g:" << suc_.g << ", h: " << suc_.h << ", f: " << suc_.f << ", origin (" << tx << "," << ty << "), is on reverse tree "<< endl; }
+              { cerr << " \t\t Pruning: ("<< x<< "," << y << ") : " <<" g:" << suc_.g << ", h: " << suc_.h << ", f: " << suc_.f << ", origin (" << tx << "," << ty << "), is on reverse tree "<< endl; }*/
         }
 }
 
@@ -582,11 +554,6 @@ void meet::valueUpdating(int x, int y, bool diagNeighbor, Cost &suc_, double cur
 bool meet::minEdge(double v1, double v2)
 { // sg >= cg +1 && sg <= cg+1
     return geq(v1,v2+1) && leq(v1,v2+1);
-}
-
-bool meet::les(double v1, double v2)
-{
-      return (v1 + epsilon < v2);
 }
 
 bool meet::leq(double v1, double v2)
@@ -597,6 +564,11 @@ bool meet::leq(double v1, double v2)
 bool meet::geq(double v1, double v2)
 {
       return (v1 + epsilon > v2);
+}
+
+bool meet::les(double v1, double v2)
+{
+      return (v1 + epsilon < v2);
 }
 
 bool meet::gre(double v1, double v2)
@@ -618,7 +590,7 @@ void meet::GetNeighbors(int x, int y, vertex &cur_, vertex &suc, bool diagNeighb
                h_ = suc.cf.h; 
                if(childHas_ && !culling_)
                {  OpenF.push(suc); }   
-               cerr << "\t forward neighbor is------->: " << x << " " << y << ", f: " << suc.cf.f << " g: " << suc.cf.g << " h: " << suc.cf.h << " bf " << suc.cb.pr << " " << suc.cf.nf << "  " << (suc.cb.g + suc.cf.g) << "  " << suc.cb.g << " -- " << suc.cb.h   << endl;
+               //cerr << "\t forward neighbor is------->: " << x << " " << y << ", f: " << suc.cf.f << " g: " << suc.cf.g << " h: " << suc.cf.h << " bf " << suc.cb.pr << " " << suc.cf.nf << "  " << (suc.cb.g + suc.cf.g) << "  " << suc.cb.g << " -- " << suc.cb.h   << endl;
            }
            else
            {
@@ -626,7 +598,7 @@ void meet::GetNeighbors(int x, int y, vertex &cur_, vertex &suc, bool diagNeighb
                h_ = suc.cb.h; 
                if(childHas_ && !culling_)
                {  OpenB.push(suc); } 
-               cerr << "\t backward neighbor is------->: " << x << " --- " << y << ", f: " << suc.cb.f << " g: " << suc.cb.g << " h: " << suc.cb.h << " ff " << suc.cf.pr <<" " << suc.cb.nf << "  " << (suc.cb.g + suc.cf.g) << " "  << suc.cf.g << "  " << suc.cf.h << endl;
+               //cerr << "\t backward neighbor is------->: " << x << " --- " << y << ", f: " << suc.cb.f << " g: " << suc.cb.g << " h: " << suc.cb.h << " ff " << suc.cf.pr <<" " << suc.cb.nf << "  " << (suc.cb.g + suc.cf.g) << " "  << suc.cf.g << "  " << suc.cf.h << endl;
            }
            if(localFind_)
            {  Ib_ = suc; findMS_ = true; Dhill_ = Hcur > h_ + epsilon; }           

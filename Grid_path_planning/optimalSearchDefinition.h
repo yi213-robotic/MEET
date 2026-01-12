@@ -44,6 +44,7 @@ struct NGcost_{
   NGcost_(double f_, double g_, double h_ , bool pi, bool mt_, bool pI_, bool val) :f(f_), g(g_), h(h_), pi_ (pi), mt(mt_), pI(pI_), val_(val) {}
 };
 
+
 struct Cost { // Estimated cost for a vertex
    int prt;
    bool pr, vis_, pi_, Spt_;

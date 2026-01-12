@@ -1,7 +1,7 @@
 
 
 /*************************************************
- * metah authors: Yi, Bingxian, Eyal, Oren
+ * MEET authors: Yi, Bingxian, Eyal, Oren
  * **********************************************/
 #ifndef MEET_H
 #define MEET_H
@@ -37,10 +37,10 @@ class meet{
 public:
     meet();
     ~meet();
+    meet(vector<bool > grid_, int width, int height, int sx, int sy, int gx, int gy);
     bool TC1();
     bool TC6();
     void get_Max();
-    void meetSEARCH(); 
     /********** Euclidean distance between two vertices  **************/
     bool isCSRstate();
     void parsing_map();
@@ -48,6 +48,8 @@ public:
     int ID(int x, int y);
     
     void forwardSearch();
+    
+    bool hasBetterSolu();
 
     void backwardSearch();
      
@@ -60,9 +62,13 @@ public:
     bool TC5(double Gcur, double Hcur);
     /******* Insert start into Open ***********/
     
-    bool les(double v1, double v2);
+    bool les(double v1, double v2);    
     
-    bool hasBetterSolu();
+    bool gre(double v1, double v2);
+   
+    bool leq(double v1, double v2);
+    
+    bool geq(double v1, double v2);
     
     bool hEq(double gCur, double hCur);
     
@@ -72,30 +78,23 @@ public:
 
     void Initialize_And_Insert_start();
 
-    bool gre(double v1, double v2);
-   
+
     bool CSRS(double Gcur, double Hcur);
-    void minValueOps(double sf_, bool spi_);
     bool TC3(double gCur_, double hCur_);  
     
     double OctileDistance(int dx, int dy);
-
-    bool leq(double v1, double v2);
     
+    void minValueOps(double sf_, bool spi_);
     bool Terminate_(double sg_, double sh_);
 
     double EuclideanDistance(int dx, int dy);
     
     vertex Initialize_(int x, int y, int ID);
-    
-    bool geq(double v1, double v2);
-    
-    
+      
     bool hElevation(double curG, double curH);
     
     bool checkingCsrs(double Gcur, double Hcur);
-    
-      
+ 
     bool TC4(double gCur_, double hCur_, bool pi_);
     
     void leastCostFound(double leasCost_, vertex suc);
@@ -114,11 +113,12 @@ public:
     
     bool TerminationCondition(double Gcur, double Hcur, bool Ibest_, bool PreExpansion);
     
+    
     void generatingSuccessor(vertex cur_, double Gcur, double Hcur, bool Ibest_, bool curDm, bool opt, bool curSpt_);
     
-    void GetNeighbors(int x, int y, vertex &cur_, vertex &suc, bool diagNeighbor, bool &update, double Gcur, double Hcur);  
+    double meetSEARCH(double &runtime, int &FE, int &BE, int &OSME, int &chi_, int &T1, int &T2, int &T3, int &T4, int &T5, int &T6); 
     
-    //bool refineState(bool Ibest_, bool g_h, double sg, double sf ,double cg, double sh, bool sDir_, bool &cpI_, double ch); 
+    void GetNeighbors(int x, int y, vertex &cur_, vertex &suc, bool diagNeighbor, bool &update, double Gcur, double Hcur);  
     
     void getMinMetricValue_(double sf_, double sg_, double sh_, bool digm_, bool Ms_ , double Gcur, double Hcur, double &lminF_, NGcost_ &val_, bool mt_, bool pI_, int ID_, bool uiCost);
     
@@ -142,11 +142,10 @@ private:
     bool Ih_;// check whether Ib has a greater g_value in the generated direction 
     NGcost_ sval_;
     NGcost_ IMV_, ExIMV_;
-    
-    bool TC1_,TC2_,TC3_,TC4_,TC5_,TC6_,cPi_,lSpt_, acrt_, preDf_, preDb_,bpi_, bSolu_;
-    bool fExpd_, find_solution, skip_, localFind_, culling_, findMS_,IbDir_, prtI_, locSol_, c_bt, bFs_, pSolF_ , pSolB_,locS_, psl_;
-    bool findASolution_,Spi_,Spt_, bSoluF_, bSoluB_, hasChild_, firstS_,Dhill_,locHep_,bIh_;
-    double Sfmin_, C_curr, prtIbG_, prtIbH_, epsilon, infinity, fmin_, f_dMin ,curCost_, lnh_,f_min_,b_min_, IGMin_, gI_, hI_, IgI_, curG_, curH_, sGmin_, prtIbIG_, prtIbIH_;
-    int map_x, map_y, start_x, start_y, end_x, end_y, fCounter_, bCounter_, _ID,START,GOAL, minID_;
+    bool TC1_,TC2_,TC3_,TC4_,TC5_,TC6_,cPi_,lSpt_, acrt_, preDf_, preDb_,bpi_;
+    bool fExpd_, find_solution, skip_, localFind_, culling_, findMS_,IbDir_, prtI_, locSol_, c_bt, bFs_, bIh_, pSolF_, pSolB_,locS_;
+    bool findASolution_,Spi_,Spt_, bSoluF_, bSoluB_, hasChild_, firstS_,Dhill_,locHep_, bSolu_;
+    double Sfmin_, C_curr, prtIbG_, prtIbH_, epsilon, infinity, fmin_, f_dMin ,curCost_, lnh_,f_min_,b_min_, IGMin_,gI_, hI_, IgI_,sGmin_, curG_, curH_, maxG_;
+    int map_x, map_y, start_x, start_y, end_x, end_y, fCounter_, bCounter_, _ID,START,GOAL, minID_, OSME_;
 };
 #endif
