@@ -14,6 +14,6 @@ Experimental comparisons demonstrate that our algorithm outperforms MM in terms 
 
 
 🚀 **[MEET has been accepted to the 34th International Joint Conference on Artificial Intelligence (IJCAI 2025)](https://2025.ijcai.org)!** 
-
-### The official, cleaned, and fully documented source code, along with the extended version of MEET, will be released soon!
+### A preliminary version of the source code is now available.
+### The official, cleaned, and fully documented source code, plus an extended version of MEET (new insights on MM optimality, an additional termination condition, clearer intuition, and full proofs), will be released soon!
 
