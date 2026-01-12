@@ -1,0 +1,753 @@
+33
+4
+_________________________________
+____#_____#______________________
+______#___________#______________
+______________#__________________
+0 0
+10 2
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#include "meet.h"
+/***** Construct meet *****/
+meet::meet(){
+    epsilon = 1e-9;//numeric_limits<double>:: epsilon()
+    C_curr = infinity = numeric_limits<double>:: infinity();
+    fCounter_ = bCounter_ = 0;
+    firstS_ = find_solution = findASolution_  = false;
+    TC1_ = TC2_ = TC3_ = TC4_ = TC5_ = TC6_ = false;
+    
+}
+/***** Deconstructbeas */
+meet::~meet(){}
+/********** Initialize location *************/
+vertex meet::Initialize_(int x, int y, int ID) {
+  vertex init;
+    init.l.x =x;  init.l.y = y; init.l.Id = ID;
+  return init;
+}
+
+int meet::ID(int x, int y)
+{ return (x<<16|y); }
+
+/********** Euclidean distance between two vertices  **************/
+double meet::EuclideanDistance(int dx, int dy)
+  {return sqrt((dx)*(dx) + (dy)*(dy));}
+
+double meet::OctileDistance(int dx, int dy)
+{
+   double delta_x = fabs(dx);
+   double delta_y = fabs(dy);
+   double largest = max(delta_x,delta_y);
+   double smallest = min(delta_x,delta_y);
+   return DigCost*smallest + (largest - smallest);
+}
+
+/********** parsing a map and get the corner verrtices ************/
+void meet::parsing_map() {//
+    int xs=0,ys=0, dynamicNum =0;
+    char chr= '\0';
+    int src = 0, t = 0;
+    cin >> xs>>ys;
+    map_x = xs;map_y = ys;
+    int p= (xs<<16)|ys;
+    grid_.resize(p);
+    p = ((xs+2)<<16)|(ys+2);
+    blocks_.resize(p);
+    for(int i = ys-1; i>=0;i--) { //row y
+        for(int j = 0; j<xs;j++) { // col x
+            cin >> chr;
+            p = j<<16 | i;
+            if(chr == '#'){
+                grid_[p] = true;//
+            }
+        }
+        //cerr << endl;
+    }
+    //exit(-1);
+    cin>>start_x>>start_y;
+    cin>>end_x>>end_y;
+    //cerr << "Path finding from ("<<start_x << "," << start_y << ") to  ("<<end_x << "," << end_y << ") on the map with the weith: " << map_x << ", and height: " << map_y << "." << endl;
+    /*vertex_.resize(map_x+2);
+    for(int x = 0; x<= map_x+1;x++) {
+       vertex_[x].resize(map_y+2);
+    }*/
+    vertex_.resize((map_x+2)<<16|(map_y+2));
+    
+    for (int x = 0; x <= map_x+1; x++) {
+        for (int y = 0; y <= map_y+1; y++){
+             int VID = x<<16|y;
+                 vertex_[VID] = Initialize_(x,y,VID);
+                 blocks_[VID] = true;//Set all cells to be blocked.
+        }
+    }
+    for (int x = 0; x < map_x; x++) {
+        for (int y = 0; y < map_y; y++) {
+            if (!grid_[x<<16|y]) {
+               blocks_[(x+1)<<16|(y+1)] = false;  
+            }
+        }
+    }
+    NGcost_ sval(0,0,0,false,false,false);
+    NGcost_ nval(0,0,0,false,false,false);
+    START = ID(start_x,start_y);
+    GOAL = ID(end_x,end_y);
+    Initialize_And_Insert_start(); 
+}
+
+/******* Insert start into Open ***********/
+void meet::Initialize_And_Insert_start() 
+{
+    vertex_[GOAL].gol = true;
+    vertex_[START].src = true;
+    OpenB.push(vertex_[GOAL]); 
+    OpenF.push(vertex_[START]);
+}
+
+
+bool meet::stateExpansion()
+{
+   
+   fExpd_ = false;  
+   fdir_ = OpenF.top();
+   bdir_ = OpenB.top();   
+   fdir_ = vertex_[fdir_.l.Id];
+   bdir_ = vertex_[bdir_.l.Id];   
+     
+   if(fdir_.vis)
+   {
+       OpenF.pop();
+       return false;
+   }
+   if(bdir_.vis)
+   {
+       OpenB.pop();
+       return false;
+   }
+   
+   fmin_ = std::min(fdir_.cf.f,bdir_.cb.f);
+   
+   /* evaluate whether need to terminate search**/
+   if(findASolution_ && (find_solution = TerminationCondition(0, 0, false, true)))
+   { return true; }
+   
+   /* select the minimum priority for expansion**/
+   if(fdir_.cf.f + epsilon < bdir_.cb.f)
+   {  
+       minValueOps(bdir_.cb.f,bdir_.cb.pi_); 
+       fExpd_ = true; 
+   }
+   else if(fdir_.cf.f > bdir_.cb.f + epsilon)
+   { 
+         fExpd_ = false;
+         minValueOps(fdir_.cf.f,fdir_.cf.pi_); 
+   }
+   else// tie breaking
+   {
+        if(fdir_.cf.g + epsilon < bdir_.cb.g)
+        {  
+            fExpd_ = true; 
+            minValueOps(bdir_.cb.f,bdir_.cb.pi_); 
+        }
+        else if(fdir_.cf.g > bdir_.cb.g + epsilon)
+        {  
+             fExpd_ = false; 
+             minValueOps(fdir_.cf.f,fdir_.cf.pi_);  
+        }
+        else
+        {  
+            fExpd_ = true;
+            minValueOps(bdir_.cb.f,bdir_.cb.pi_);  
+        }
+   }
+   return true;
+}
+
+
+void meet::forwardSearch()
+{
+      cerr << "expanding in forward direction: (" << fdir_.l.x << "," << fdir_.l.y<< " ), f: " << fdir_.cf.f << " g: " << fdir_.cf.g << " h: "<< fdir_.cf.h << " " << fCounter_ << " "  << fdir_.cb.pr << "  " <<  fdir_.mt << endl;
+      vertex_[fdir_.l.Id].vis = true;  
+      generatingSuccessor(fdir_, fdir_.cf.g, fdir_.cf.h, fdir_.mt, cPi_ = fdir_.cf.pi_, fdir_.cb.pr, fdir_.cf.Spt_);
+}
+
+void meet::backwardSearch()
+{
+
+      cerr << "expanding in backward direction: (" << bdir_.l.x << "," << bdir_.l.y<< "), f: " << bdir_.cb.f << " g: " << bdir_.cb.g << " h: " << bdir_.cb.h  <<"  " << bCounter_ << " " << bdir_.cf.pr << " " << bdir_.mt << endl;         
+      vertex_[bdir_.l.Id].vis = true;
+      generatingSuccessor(bdir_, bdir_.cb.g, bdir_.cb.h,bdir_.mt, cPi_ = bdir_.cb.pi_,bdir_.cf.pr, bdir_.cb.Spt_);
+}
+
+void meet::printStatement()
+{
+      if(findASolution_ )
+      {
+           cerr << "********************* METAH finds a solution C_curr: " << C_curr << ", forward g:  " << fdir_.cf.g << " forward h: " << fdir_.cf.h << ", forward f: " <<  fdir_.cf.f << "; backward g: " <<  bdir_.cb.g; 
+           cerr << ", backward f: "  << bdir_.cb.f << "; forward vertex [ "<< fdir_.l.x << " " << fdir_.l.y << "], backward vertex [ " << bdir_.l.x << " " << bdir_.l.y;
+           cerr << "]; meeting state is:[ " << Ib_.l.x << " " << Ib_.l.y << " ]."  << endl;
+      }
+}
+
+/************Find an optimal anyangle path********************/
+void meet::meetSEARCH() {
+    double startTime = clock();
+    bool ProrityC = false;
+    int ty = 0, tx = 0, tmx=999999 , tmy=999999;
+    vector<pair<int,int> > forwardL, backwardL;
+    findASolution_ = false;
+    while(!OpenF.empty() && !OpenB.empty()){//OpenList is not empty
+
+          if(!stateExpansion())
+             continue;
+          if(find_solution)
+             break;   
+          if(fExpd_)
+          {               
+                OpenF.pop();
+                if(fdir_.vis)
+                  continue;
+                //forwardL.push_back(make_pair(fdir_.l.x,fdir_.l.y));
+                printStatement();
+                fCounter_++;
+                /*if(fCounter_ == 552)
+                 exit(-1);*/
+                forwardSearch();
+          } 
+          else
+          {
+                
+                OpenB.pop();
+                if(bdir_.vis)
+                  continue;
+                //backwardL.push_back(make_pair(bdir_.l.x,bdir_.l.y));
+                printStatement(); 
+                bCounter_++;
+
+                backwardSearch();
+          }
+          if(find_solution)
+             break;
+    }
+    double endTime = clock();
+    double rtime = (double) (endTime - startTime) / CLOCKS_PER_SEC;
+    cerr << "meet takes: "<<rtime*1000 <<" (ms)";
+    double pathLength = C_curr;
+    /*for(int i = 0 ; i < forwardL.size();i++)
+    { 
+        
+        cerr << "(" << forwardL[i].first<< "," << forwardL[i].second<< "),"  << endl;
+       
+        
+    }
+    
+    cerr << "******************************* " <<endl;
+    for(int i = 0 ; i < backwardL.size();i++)
+    {
+
+        cerr << "(" << backwardL[i].first<< "," << backwardL[i].second<< ")," << endl;
+        
+    }*/
+    if(pathLength != 0)
+    {
+       cerr << " to find the optimal path length: " << setprecision(15) <<pathLength << " and expanded forward vertices: " << fCounter_ << ", backward vertices: " << bCounter_ << endl;
+       cerr << " TC occurs when "<<  TC1_ << "  " << TC2_<< " " <<  TC3_ << "  " <<  TC4_ << "  "<<  TC5_ << "  " <<  TC6_ << endl;
+       show_path();
+    }
+    else
+    {
+        cerr << " to find no path." << endl;
+    }
+}
+
+
+/*******************Constraining, Modifying Propagating range***********/
+void meet::generatingSuccessor(vertex cur_, double Gcur, double Hcur, bool Ibest_, bool pi_, bool opt, bool curSpt_) {//eight ibeasediate neighbors, where (0, 0) is the bottom left corner
+      int x = cur_.l.x, y = cur_.l.y;
+      int Ax = x+1,Ay = y+1,Dx = x-1,Dy = y-1;
+      hasChild_ = firstS_ = findMS_ = false;
+      bool prdf_ = false, prdb_ = false;
+      fExpd_ ? prdf_ = Gcur + epsilon < Hcur : prdb_ = Gcur + epsilon < Hcur;
+      Spt_ = curSpt_;
+      Sfmin_ = infinity;
+      NGcost_ sval(0,0,0,false,false,false);
+      int locNE=ID(Ax,Ay),locSE=ID(Ax,y),loc=ID(x,y),locNW=ID(x,Ay),locS=ID(x,Dy),locW=ID(Dx,y),locES=ID(Ax,Dy),locWS=ID(Dx,Dy),locWN=ID(Dx,Ay);//
+      //bool NE =!vertex_[Ax][Ay].block, SE = !vertex_[Ax][y].block, SW = !vertex_[x][y].block, NW = !vertex_[x][Ay].block, constrainAngles = false;
+      bool NE = !blocks_[locNE], SE = !blocks_[locSE], SW = !blocks_[loc], NW = !blocks_[locNW], dr = false, update = false, diagVertex = false;
+      if((NW || NE) && !vertex_[locNW].vis){//north = northWest or northEast locNW
+          GetNeighbors(x,y+1,cur_,vertex_[locNW],false,update,Gcur,Hcur);// cerr << "\t north neighbor(" << x << "," << y+1 << ") is visible " << endl;
+      }
+      if((SE || NE)&& (!vertex_[locSE].vis)){//east = SouthEast or NorthEast locSE
+          GetNeighbors(x+1,y,cur_,vertex_[locSE],false,update,Gcur,Hcur);// cerr << "\t east neighbor(" << x+1 << "," << y << ") is visible " << endl;
+      }
+      if((SW || SE)&& (!vertex_[locS].vis)){//south = southWest or southEast locS
+          GetNeighbors(x,y-1,cur_,vertex_[locS],false,update,Gcur,Hcur);// cerr << "\t south neighbor(" << x << "," << y-1 << ") is visible " << endl;
+      }
+      if((SW || NW)&& (!vertex_[locW].vis)){//west = southWest or northWest locW
+          GetNeighbors(x-1,y,cur_,vertex_[locW],false,update,Gcur,Hcur);//cerr << "\t west neighbor(" << x-1 << "," << y << ") is visible " << endl;
+      }
+      if(NE && (!vertex_[locNE].vis)){//northEast locNE
+          GetNeighbors(x+1,y+1,cur_,vertex_[locNE],true,update,Gcur,Hcur);// cerr << "\t northeast neighbor(" << x+1 << "," << y+1 << ") is visible " << endl;
+      }
+      if(SE && (!vertex_[locES].vis)){//southEast locES
+          GetNeighbors(x+1,y-1,cur_,vertex_[locES],true,update,Gcur,Hcur);//cerr << "\t southeast neighbor(" << x+1 << "," << y-1 << ") is visible " << endl;
+      }
+      if(SW && (!vertex_[locWS].vis)){//southWest locWS
+          GetNeighbors(x-1,y-1,cur_,vertex_[locWS],true,update,Gcur,Hcur);//cerr << "\t southwest neighbor(" << x-1 << "," << y-1 << ") is visible " << endl;
+      }
+      if(NW && (!vertex_[locWN].vis)){//northWest locWN
+          GetNeighbors(x-1,y+1,cur_,vertex_[locWN],true,update,Gcur,Hcur);//cerr << "\t northwest neighbor(" << x-1 << "," << y+1 << ") is visible " << endl;
+      }
+      
+      if(findMS_)
+      {      
+             findASolution_ = true;
+             IbDir_ = fExpd_;
+             prtI_ = pi_;
+             locSol_ = bSoluF_ =  bSoluB_ = false;;//(firstS_ || hElevation(IMV_.g,ExIMV_.g,IMV_.h,ExIMV_.h))
+             Ih_ = sval_.g + sval_.g + epsilon > C_curr; 
+             prtIbG_ = Gcur ; prtIbH_ = Hcur;
+             lSpt_ = acrt_ ? true: false;
+             c_bt = fExpd_ ? f_min_ + epsilon> C_curr : b_min_ + epsilon > C_curr;
+      }
+      else
+      {
+	        if(findASolution_ && !find_solution) //&& llmin_ + epsilon < C_curr
+	        { 
+	            Sfmin_ = sval_.f; 
+	            if(Spt_ && f_dMin + epsilon < C_curr &&  !lSpt_ && (sval_.f + epsilon  < C_curr))
+                    { lSpt_ = true; }
+                    find_solution = TerminationCondition(Gcur,Hcur,pi_,false);
+                    preDf_ = prdf_, preDb_ = prdb_;
+		}
+		fExpd_ ? f_min_ = Sfmin_: b_min_ = Sfmin_; 
+      }
+}
+
+void meet::minValueOps(int sf_, bool spi_)
+{
+     f_dMin =  sf_;
+     bpi_ = spi_; 
+}
+
+bool meet::TC1()
+{  
+   return TC1_= (fmin_ + epsilon > C_curr || (!bpi_ && (f_dMin + epsilon > C_curr)));     
+}
+
+bool meet::TC2(bool fpi_, bool bpi_, bool fmt_, bool  bmt_, double fg, double bg)//&& fdir_.cf.h < lnh_ && bdir_.cb.h < lnh_
+{
+     //return false;
+     cerr << !fpi_ << " "  << !bpi_ << " " << !fmt_ << " " << !bmt_<< " "  << fg << " " << bg << " " << C_curr <<endl;
+     return TC2_= ((!fpi_ && !bpi_) && !fmt_ && !bmt_  && greater(fg+bg+1,C_curr));
+}
+
+bool meet::TC3(double gCur_, double hCur_)
+{
+    //return false;
+    //return TC3_= (Ih_ &&  gCur_ > prtIbG_ + epsilon &&  (sval_.g > IMV_.g + epsilon || hCur_ > prtIbH_ +epsilon));
+    return TC3_= (Ih_ &&  gCur_ > prtIbG_ + epsilon &&  (sval_.g > IMV_.g + epsilon || hCur_ > prtIbH_ +epsilon));
+    return Ih_ && (cPi_? prtI_ && hEq(gCur_, hCur_) : (!locSol_ ? hEq(gCur_, hCur_) : Dhill_ && hElevation(gCur_, hCur_)));
+}
+bool meet::TC4(double gCur_, double hCur_, bool pi_)
+{
+     //return false;
+     //cerr << (!bSoluF_ || !bSoluB_) << "  " << sval_.pi_ << "  " << (Sfmin_ + epsilon> C_curr) << endl;
+     //return TC4_ = (!Ih_ && (!bSoluF_ || !bSoluB_) && (((!sval_.pi_ || pi_) && Sfmin_ + epsilon> C_curr) || ((!sval_.pi_ || (fExpd_!= IbDir_)) && hElevation(gCur_,hCur_))));
+     bool sDirSol_ = !Ih_ && ((!bSoluF_ &&fExpd_) || (!bSoluB_ && !fExpd_));
+     bool sDir_ = false;
+     //return false;
+     if(!sDirSol_ || ((sDir_ = (fExpd_== IbDir_)) && Eq(gCur_, hCur_) &&(sval_.g + sval_.h  + epsilon < C_curr && (f_dMin + epsilon < C_curr)))) 
+     {return TC4_ = false;}  
+     
+     if(!sDir_)
+     {
+        return (TC4_ = (hElevation(gCur_,hCur_) || Sfmin_ >= C_curr));
+     }
+     else if(!pi_)
+     {
+        //cerr << gCur_ << "  " <<Hcur_ << "  " <<fExpd_ << "  " << preDb_ << "  " << preDf_ << endl;  
+        if(!Eq(gCur_, hCur_) || hCur_ >= lnh_)
+        return (TC4_ = (gCur_ == hCur_ ? (fExpd_ ? preDb_ : preDf_): true) && ((!sval_.pi_ && Sfmin_ >= C_curr) || hElevation(gCur_,hCur_)));//
+     }
+     else
+     {
+        return (TC4_ = hEq( gCur_, hCur_) || Sfmin_ >= C_curr);
+     }
+     return TC4_ =false;
+     //return TC4_ = (!Ih_ && (!betterSoluF_ || !betterSoluB_) && (((!sval_.pi_ || pi_) && Sfmin_ + epsilon> C_curr) || ((!sval_.pi_ || (fExpd_!= IbDir_)) && hElevation(gCur_,hCur_))));
+}
+bool meet::TC5(double Gcur, double Hcur)
+{
+     //return false;
+     //return TC5_= ((!bSoluF_ || !bSoluB_) && (!sval_.pi_ ? Sfmin_ + epsilon> C_curr: sval_.g+sval_.h + epsilon> C_curr ));
+     
+     bool sDirSol_ = ((!bSoluF_ &&fExpd_) || (!bSoluB_ && !fExpd_));
+     bool El = (fExpd_== IbDir_) && Eq(Gcur,Hcur);    
+     return TC5_ = sDirSol_ && ((!Ih_ && !El  && !prtI_ && c_bt )  || fExpd_!= IbDir_ || (!sval_.pi_ && !El  && !prtI_ && c_bt)) && (sval_.g+sval_.h + epsilon > C_curr);;
+}
+
+bool meet::TC6()
+{
+    //return false;
+    return TC6_= (Spt_ && !lSpt_ && !Ih_ && !sval_.pi_ && Sfmin_ + epsilon> C_curr);
+}
+
+bool meet::hElevation(double gCur, double hCur)
+{ return (gCur + epsilon > prtIbG_  && hCur + epsilon > prtIbH_); }
+
+bool meet::hEq(double gCur, double hCur)
+{ return(gCur > prtIbG_ + epsilon && hCur + epsilon > prtIbH_) || (gCur + epsilon > prtIbG_ && hCur > prtIbH_+ epsilon); }
+
+bool meet::Eq(double gCur, double hCur)
+{ return(gCur + epsilon > prtIbG_ && gCur < prtIbG_ + epsilon  && hCur + epsilon > prtIbH_ && hCur < prtIbH_+ epsilon ); }
+
+bool meet::TerminationCondition(double Gcur, double Hcur, bool pi_, bool PreExpansion)
+{ 
+         if(PreExpansion)
+         {
+                 if(TC1() || TC2(fdir_.cf.pi_,bdir_.cb.pi_,fdir_.mt, bdir_.mt,fdir_.cf.g,bdir_.cb.g))
+                 {
+                   return true;
+                 }
+         }
+         else
+         {
+                 if(TC3(Gcur, Hcur) || TC4(Gcur, Hcur, pi_) || TC5(Gcur, Hcur) || TC6())
+                 {
+                    return true;
+                 }  
+         }
+         
+         return false;
+}
+
+
+bool meet::refineState(bool Ibest_, bool g_h, double sg, double sf ,double cg, double sh, bool sDir_, bool &cpI_, double ch_)
+{
+          return (findASolution_ && minEdge(sg,cg));   
+}
+
+
+void meet::updateMetricValues(int lx, int ly, bool diagNeighbor, Cost &vc_, double cg, double ch ,int &curId_, int sId_ , int ox, int oy, bool oprD_, double bg_, bool &sDm_, bool &sms_, double bf, bool curDm, bool &child_, bool vis_)
+{
+       bool pIs_ = false, cPI_ = true; //deadend_ = true;
+       valueUpdating(lx,ly,diagNeighbor,vc_,cg,curId_,ox,oy,oprD_,bg_,sDm_,sms_,bf,curDm,child_);
+       if(child_ || (findASolution_ && minEdge(vc_.g,cg)))
+       {
+             if(findASolution_)
+             {
+                 vc_.Spt_ = child_;
+                 
+                 if(Ih_ && !cPi_&& locHep_)
+                 { locSol_ = !locSol_ ? (vc_.g + vc_.h < C_curr): locSol_;}
+                 
+                 if((!bSoluF_ || !bSoluB_)  &&  (Ih_ ? (vc_.pi_? vc_.g < IMV_.g + epsilon : vc_.f + epsilon < C_curr)  : vc_.f + epsilon < C_curr))  
+                 {  fExpd_ ? bSoluF_ = true : bSoluB_ = true; /*find a refine state**/}
+             }
+             getMinMetricValue_((findMS_ ? curCost_ : vc_.f),vc_.g,vc_.h,vc_.pi_, false, cg, ch,Sfmin_,sval_,sms_,pIs_,sId_);   
+       }
+}
+
+void meet::getMinMetricValue_(double sf_, double sg_, double sh_, bool digm_, bool Ms_ , double Gcur, double Hcur, double &lminF_, NGcost_ &val_, bool smt_, bool pI_, int ID_)
+{
+          if(sf_ + epsilon < lminF_ )
+          {
+             lminF_ = sf_;
+             val_ = NGcost_(sf_,sg_,sh_,digm_,smt_,pI_); 
+          }
+}
+
+/*********** Constraining Propagating range from surrounding neighors ***************/
+void meet::valueUpdating(int x, int y, bool diagNeighbor, Cost &suc_, double cur_g, int &prt, int tx, int ty, bool oprDr, double rg, bool &pi_, bool &smt_, double rf, bool curD_, bool &child_)
+{    
+        if(!suc_.pr)
+        {
+            suc_.h = EuclideanDistance(x-tx,y-ty);
+            //suc_.h = OctileDistance(x-tx,y-ty);
+            suc_.g = infinity;
+        }
+        double edge_Cost =1;
+        if(diagNeighbor)
+        { edge_Cost = DigCost;}
+        double gCost = cur_g + edge_Cost;
+        double leastC = 0;
+        if(suc_.g > gCost + epsilon)
+        {
+              suc_.prt = prt;
+              suc_.g = gCost;
+              suc_.nf = suc_.f = suc_.g + suc_.h; 
+              suc_.pr = hasChild_ = child_ = true;
+              pi_ = (suc_.g > suc_.h + epsilon);                  
+              if(!oprDr)
+              {
+                  suc_.f = pi_ ? suc_.g + suc_.g : suc_.f; //updating heuristic value
+                  culling_ = (findASolution_  && suc_.f+epsilon  >  C_curr);
+              }  
+              else
+              {
+                  leastC = suc_.g + rg; 
+                  bool Ibest_= false;
+                  cerr << " the reverse tree's g-value is " << rg << " " << firstS_ << endl;
+                  if(leastC + epsilon < C_curr || (Ibest_ = ( !(leastC > epsilon + C_curr) && (!firstS_ && min(suc_.g,rg) + epsilon < IMV_.g))))
+                  {
+                            
+		            suc_.f = Ih_ ? leastC : (curCost_ = (!pi_ ? suc_.f: (suc_.g+suc_.g)));   //updating heuristic
+		            Ih_ = (suc_.g > rg + epsilon);
+		            if(findASolution_)
+		            { vertex_[Ib_.l.Id].mt = false; }
+		            smt_ = localFind_ = findMS_ = true;
+		            lnh_ = rg; ExIMV_ = IMV_;
+		            IMV_ = NGcost_(suc_.f,suc_.g,suc_.h,pi_,smt_,false); // recording the current meeting state
+		            C_curr = leastC;
+		            IGMin_ = min(suc_.g,rg);
+		            acrt_ = (suc_.h + epsilon> rg && !cPi_); 
+		            if(!Ibest_)
+		            { firstS_ = true; cerr << "\t here we found a new path **********************************************************!"<<endl;}
+		            else
+		            { cerr << "\t we found a better meeting state *****************************************************!"<< endl;   }
+                  }
+                  else
+                  {   
+                            suc_.f = !pi_ ? suc_.f: suc_.g+suc_.g;  //updating heuristic value
+                            culling_ = true;
+                  }
+              }
+              
+              if(!culling_)
+              { cerr << " \t\t ("<< x<< "," << y << ")," <<" g:" << suc_.g << ", h: " << suc_.h << ", f: " << suc_.f << ", origin (" << tx << "," << ty << "), is on reverse tree " << endl; }
+              else
+              { cerr << " \t\t Pruning: ("<< x<< "," << y << ") : " <<" g:" << suc_.g << ", h: " << suc_.h << ", f: " << suc_.f << ", origin (" << tx << "," << ty << "), is on reverse tree "<< endl; }
+        }
+}
+
+
+bool meet::minEdge(double v1, double v2)
+{ // sg >= cg +1 && sg <= cg+1
+    return greaterOrequal(v1,v2+1) && lessOrequal(v1,v2+1);
+}
+
+bool meet::lessOrequal(double v1, double v2)
+{
+      return (v1 < v2 + epsilon);
+}
+
+bool meet::greaterOrequal(double v1, double v2)
+{
+      return (v1 + epsilon > v2);
+}
+
+bool meet::less(double v1, double v2)
+{
+      return (v1 + epsilon < v2);
+}
+
+bool meet::greater(double v1, double v2)
+{
+       return (v1 > v2 + epsilon);
+}
+
+void meet::GetNeighbors(int x, int y, vertex &cur_, vertex &suc, bool diagNeighbor, bool &update, double Gcur, double Hcur)
+{
+           localFind_ = culling_ = false;
+           bool childHas_ = false, pI_ =  false, checking_ = false;
+           double h_ =0;
+           if(findASolution_)
+           {  locHep_ = hElevation(Gcur, Hcur);  }
+           
+           if(fExpd_)
+           {
+               updateMetricValues(x,y,diagNeighbor,suc.cf,cur_.cf.g,cur_.cf.h,cur_.l.Id,suc.l.Id,end_x,end_y,(suc.cb.pr) || suc.gol,suc.cb.g,suc.cf.pi_,suc.mt,suc.cb.f,cur_.cf.pi_,childHas_, suc.vis);
+               h_ = suc.cf.h; 
+               if(childHas_ && !culling_)
+               {  OpenF.push(suc); }   
+               cerr << "\t forward neighbor is------->: " << x << " " << y << ", f: " << suc.cf.f << " g: " << suc.cf.g << " h: " << suc.cf.h << " bf " << suc.cb.pr << " " << suc.cf.nf << "  " << (suc.cb.g + suc.cf.g) << "  " << suc.cb.g << " -- " << suc.cb.h   << endl;
+           }
+           else
+           {
+               updateMetricValues(x,y,diagNeighbor,suc.cb,cur_.cb.g,cur_.cb.h,cur_.l.Id,suc.l.Id,start_x,start_y,(suc.cf.pr) || suc.src,suc.cf.g,suc.cb.pi_,suc.mt,suc.cf.f,cur_.cb.pi_,childHas_, suc.vis);
+               h_ = suc.cb.h; 
+               if(childHas_ && !culling_)
+               {  OpenB.push(suc); } 
+               cerr << "\t backward neighbor is------->: " << x << " --- " << y << ", f: " << suc.cb.f << " g: " << suc.cb.g << " h: " << suc.cb.h << " ff " << suc.cf.pr <<" " << suc.cb.nf << "  " << (suc.cb.g + suc.cf.g) << " "  << suc.cf.g << "  " << suc.cf.h << endl;
+           }
+           if(localFind_)
+           {  Ib_ = suc; findMS_ = true; Dhill_ = Hcur > h_ + epsilon; }           
+}
+
+/********** Return vertices on an optimal anyangle path ****************/
+void meet::show_path() {
+      stack<vertex > pt;
+      vertex cur_ = Ib_;
+      pt.push(cur_);
+      while(cur_.cf.pr) {
+         cur_ = vertex_[cur_.cf.prt];
+         pt.push(cur_);
+     }
+     cerr << "The optimal path: " << endl;
+     while(!pt.empty()) {
+        vertex optimal = pt.top();
+        cerr << "("<<optimal.l.x << ","<< optimal.l.y << ")," << endl;
+        pt.pop();
+     }
+     cur_ = Ib_;
+     while(cur_.cb.pr)
+     {
+         cur_ = vertex_[cur_.cb.prt];
+         cerr << "("<<cur_.l.x << ","<< cur_.l.y << ")," << endl; 
+     }
+     cerr << "the meeting point is " << Ib_.l.x << " " << Ib_.l.y << endl;
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+/*************************************************
+ * metah authors: Yi, Bingxian, Eyal, Oren
+ * **********************************************/
+#ifndef MEET_H
+#define MEET_H
+#include <stdio.h>
+#include <stdlib.h>
+#include <cstdlib>
+#include <ctime>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <stack>
+#include <algorithm> 
+#include <cmath>
+#include <limits>
+#include <iomanip>
+#include <iostream>
+#include <math.h>
+#include <unordered_map>
+#include <unordered_set>
+#include <queue>
+#include <chrono>
+#include <list>
+#include <cstdio>
+#include <fstream>
+#include <cstring>
+#include "optimalSearchDefinition.h"
+using namespace std;
+#define PHI 1.07967
+#define MaxRavDist 1.41421356237
+#define HALF_PI 1.57079632679
+
+class meet{
+public:
+    meet();
+    ~meet();
+    bool TC1();
+    bool TC6();
+    void get_Max();
+    void meetSEARCH(); 
+    /********** Euclidean distance between two vertices  **************/
+    bool isCSRstate();
+    void parsing_map();
+    
+    int ID(int x, int y);
+    
+    void forwardSearch();
+
+    void backwardSearch();
+     
+    void printStatement(); 
+
+    bool stateExpansion();
+    bool TC5(double Gcur, double Hcur);
+    /******* Insert start into Open ***********/
+    
+    bool less(double v1, double v2);
+    
+    bool hEq(double gCur, double hCur);
+    
+    bool minEdge(double v1, double v2);
+
+    bool Eq(double gCur, double hCur);
+
+    void Initialize_And_Insert_start();
+
+    bool greater(double v1, double v2);
+    
+    bool CSRS(double Gcur, double Hcur);
+    void minValueOps(int sf_, bool spi_);
+    bool TC3(double gCur_, double hCur_);  
+    
+    double OctileDistance(int dx, int dy);
+
+    bool lessOrequal(double v1, double v2);
+    
+    bool Terminate_(double sg_, double sh_);
+
+    double EuclideanDistance(int dx, int dy);
+    
+    vertex Initialize_(int x, int y, int ID);
+    
+    bool greaterOrequal(double v1, double v2);
+    
+    
+    bool hElevation(double curG, double curH);
+    
+    bool checkingCsrs(double Gcur, double Hcur);
+    
+      
+    bool TC4(double gCur_, double hCur_, bool pi_);
+    
+    void leastCostFound(double leasCost_, vertex suc);
+    
+    bool NotConsideredState(double Gcur, double Hcur);
+    
+    bool TerminationSearch(double sg_, double sh_, bool potentialT);
+    
+    void TerminatingSearch(bool search_meet, vertex fcur_, vertex bcur_);
+    
+    bool TC2(bool fpi_, bool bpi_, bool fmt_, bool  bmt_, double fg, double bg);
+    
+    /*******************Constraining, Modifying Propagating range***********/
+    
+    bool TerminationCondition(double Gcur, double Hcur, bool Ibest_, bool PreExpansion);
+    
+    void generatingSuccessor(vertex cur_, double Gcur, double Hcur, bool Ibest_, bool curDm, bool opt, bool curSpt_);
+    
+    void GetNeighbors(int x, int y, vertex &cur_, vertex &suc, bool diagNeighbor, bool &update, double Gcur, double Hcur);  
+    
+    bool refineState(bool Ibest_, bool g_h, double sg, double sf ,double cg, double sh, bool sDir_, bool &cpI_, double ch); 
+    
+    void getMinMetricValue_(double sf_, double sg_, double sh_, bool digm_, bool Ms_ , double Gcur, double Hcur, double &lminF_, NGcost_ &val_, bool mt_, bool pI_, int ID_);
+    
+    /*********** Constraining Propagating range from surrounding neighors ***************/
+    void valueUpdating(int x, int y, bool diagNeighbor, Cost &suc_, double cur_g, int &prt, int tx, int ty, bool oprDr, double rg, bool &digma_, bool &bmeet, double rf, bool curD_, bool &child_);
+    
+    
+    void updateMetricValues(int lx, int ly, bool diagNeighbor, Cost &vc_, double cg, double ch ,int &curId_, int sId_ , int ox, int oy, bool oprD_, double bg_, bool &sDm_, bool &ms_, double bf, bool curDm, bool &child_, bool vis_);
+
+    void show_path();/********** Return vertices on an optimal anyangle path ****************/
+private:
+    vector<bool> grid_;
+    vector<bool> blocks_;
+    vector<vertex> vertex_;
+    vertex fdir_; // forward search direction
+    vertex bdir_; // backward search direction
+    vertex Ib_;// the current best solution
+    priority_queue<vertex, vector<vertex>,smallerForward> OpenF;
+    priority_queue<vertex, vector<vertex>,smallerBackward> OpenB;
+    
+    bool Ih_;// check whether Ib has a greater g_value in the generated direction 
+    NGcost_ sval_;
+    NGcost_ IMV_, ExIMV_;
+    bool TC1_,TC2_,TC3_,TC4_,TC5_,TC6_,cPi_,lSpt_, acrt_, preDf_, preDb_,bpi_;
+    bool fExpd_, find_solution, skip_, localFind_, culling_, findMS_,IbDir_, prtI_, locSol_, c_bt;
+    bool findASolution_,Spi_,Spt_, bSoluF_, bSoluB_, hasChild_, firstS_,Dhill_,locHep_;
+    double Sfmin_, C_curr, prtIbG_, prtIbH_, bestL, epsilon, infinity, fmin_, f_dMin ,curCost_, lnh_,f_min_,b_min_, IGMin_;
+    int map_x, map_y, start_x, start_y, end_x, end_y, fCounter_, bCounter_, _ID,START,GOAL, minID_;
+};
+#endif
+
+
+
